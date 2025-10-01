@@ -2,7 +2,7 @@ export interface Highlight {
   id: string;
   title: string;
   description: string;
-  image: string;
+  images: [];
   latitude: number;
   longitude: number;
   municipalityId: string;
@@ -81,13 +81,4 @@ export type MunicipalityListItem = Pick<
  * Representa a estrutura de um destaque popular,
  * retornada pela API para a tela de exploração.
  */
-export interface PopularHighlight {
-  id: string;
-  title: string;
-  description: string;
-  images: Image[];
-  image: string;
-  city: string;
-  municipalityName: string;
-  municipalitySlug: string;
-}
+

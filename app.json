@@ -18,8 +18,14 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCpwoV6dVUefV1KzVfEurEjTojFmEPELww"
+        }
+      },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.kingsglaad.turismoAdetur"
     },
     "web": {
       "output": "static",
@@ -43,6 +49,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a67ab00b-83f0-402b-9472-ed311edf837f"
+      }
     }
   }
 }

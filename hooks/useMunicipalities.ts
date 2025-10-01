@@ -1,12 +1,12 @@
 import {
+  Highlight,
   Municipality,
   MunicipalityListItem,
-  PopularHighlight,
 } from "@/types/Cities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-//const API_URL = "http://192.168.0.7:3000/api";
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = "http://192.168.0.5:3000/api";
+// const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export function useMunicipalities(searchQuery: string = "") {
   // Estado para armazenar a lista completa de municípios, sem filtro.
@@ -134,7 +134,7 @@ export function useMunicipalityGeoJson(ibgeCode?: string) {
  * Hook para buscar destaques (pontos turísticos) de forma aleatória.
  */
 export function useRandomHighlights() {
-  const [highlights, setHighlights] = useState<PopularHighlight[]>([]);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -177,4 +177,52 @@ export function useRandomHighlights() {
   }, []);
 
   return { highlights, loading, error, refetch: loadRandomHighlights };
+}
+
+/**
+ * Hook para buscar os dados de um destaque (ponto turístico) específico.
+ * @param id O ID do destaque.
+ */
+export function useHighlight(id: string) {
+  const [highlight, setHighlight] = useState<Highlight | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadHighlight = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/highlights/${id}`);
+      if (!response.ok) {
+        throw new Error(`Falha na resposta da rede: ${response.statusText}`);
+      }
+      const data = await response.json();
+      // Formata os dados para garantir consistência com a lista de destaques
+      const formattedData = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        images: data.galleryImages.map((img: any, index: number) => ({
+          id: `${data.id}-img-${index}`,
+          url: img.url,
+        })),
+        ...data, // Inclui o resto dos campos que possam existir
+      };
+      setHighlight(formattedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar destaque");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadHighlight();
+  }, [id]);
+
+  return { highlight, loading, error, refetch: loadHighlight };
 }

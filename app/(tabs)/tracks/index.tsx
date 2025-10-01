@@ -24,9 +24,9 @@ import {
   useRandomHighlights,
 } from "@/hooks/useMunicipalities";
 import {
+  Highlight,
   Image as HighlightImage,
   MunicipalityListItem,
-  PopularHighlight,
 } from "@/types/Cities";
 
 // --- Função para calcular distância (Fórmula de Haversine) ---
@@ -132,9 +132,33 @@ export default function ExploreScreen() {
   );
 
   // Componente extraído para gerenciar o estado do slider individualmente
-  const HighlightCard = ({ item }: { item: PopularHighlight }) => {
+  const HighlightCard = ({ item }: { item: Highlight }) => {
     const flatListRef = useRef<FlatList<HighlightImage>>(null);
     const [activeIndex, setActiveIndex] = useState(0);
+
+    // Efeito para rolagem automática do carrossel
+    useEffect(() => {
+      if (!item.images || item.images.length <= 1) return;
+
+      const interval = setInterval(() => {
+        const nextIndex = (activeIndex + 1) % item.images.length;
+        flatListRef.current?.scrollToIndex({
+          animated: true,
+          index: nextIndex,
+        });
+        setActiveIndex(nextIndex);
+      }, 3000); // Muda a cada 3 segundos
+
+      return () => clearInterval(interval); // Limpa o intervalo ao desmontar
+    }, [activeIndex, item.images]);
+
+    const handleScrollBegin = () => {
+      // Poderíamos pausar o intervalo aqui se quiséssemos
+    };
+
+    const handleScrollEnd = () => {
+      // E reiniciar o intervalo aqui
+    };
 
     const onViewableItemsChanged = useRef(
       ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -144,49 +168,64 @@ export default function ExploreScreen() {
       }
     ).current;
 
-    const renderCarouselItem = ({ item }: { item: HighlightImage }) => (
-      <View style={styles.carouselItemContainer}>
-        <Image source={{ uri: item.url }} style={styles.highlightImage} />
-      </View>
+    const renderCarouselItem = ({ item: image }: { item: HighlightImage }) => (
+      <Link href={{ pathname: "/highligts", params: { id: item.id } }} asChild>
+        <TouchableOpacity activeOpacity={0.9}>
+          <View style={styles.carouselItemContainer}>
+            <Image source={{ uri: image.url }} style={styles.highlightImage} />
+          </View>
+        </TouchableOpacity>
+      </Link>
     );
 
     return (
       <View style={styles.highlightCard}>
         {/* Image Slider */}
-        {item.images && item.images.length > 0 && (
-          <View style={styles.carouselWrapper}>
-            <FlatList
-              ref={flatListRef}
-              data={item.images}
-              renderItem={renderCarouselItem}
-              keyExtractor={(img) => img.id}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-            />
-            {item.images.length > 1 && (
-              <View style={styles.paginationContainer}>
-                {item.images.map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.paginationDot,
-                      activeIndex === index && styles.paginationDotActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-        <View style={styles.highlightContent}>
-          <ThemedText type="subtitle">{item.title}</ThemedText>
-          <ThemedText style={styles.highlightDescription}>
-            {item.description}
-          </ThemedText>
+        <View>
+          {item.images && item.images.length > 0 ? (
+            <View style={styles.carouselWrapper}>
+              <FlatList
+                ref={flatListRef}
+                data={item.images}
+                renderItem={renderCarouselItem}
+                keyExtractor={(img) => `${item.id}-${img.id}`}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onViewableItemsChanged={onViewableItemsChanged}
+                viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+                onScrollBeginDrag={handleScrollBegin}
+                onScrollEndDrag={handleScrollEnd}
+              />
+              {item.images.length > 1 && (
+                <View style={styles.paginationContainer}>
+                  {item.images.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.paginationDot,
+                        activeIndex === index && styles.paginationDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={[styles.carouselWrapper, styles.placeholderImage]} />
+          )}
         </View>
+
+        <Link href={{ pathname: "/highligts", params: { id: item.id } }} asChild>
+          <TouchableOpacity>
+            <View style={styles.highlightContent}>
+              <ThemedText type="subtitle">{item.title}</ThemedText>
+              <ThemedText style={styles.highlightDescription}>
+                {item.description}
+              </ThemedText>
+            </View>
+          </TouchableOpacity>
+        </Link>
       </View>
     );
   };
@@ -351,6 +390,11 @@ const styles = StyleSheet.create({
   highlightImage: {
     width: "100%",
     height: "100%",
+  },
+  placeholderImage: {
+    backgroundColor: "rgba(128, 128, 128, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   paginationContainer: {
     flexDirection: "row",
