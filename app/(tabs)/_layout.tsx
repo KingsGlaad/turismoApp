@@ -3,26 +3,15 @@ import { HapticTab } from "@/components/utils/HapticTab";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MaterialIcons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
 import { Platform } from "react-native";
+
+// A permissão de localização foi removida daqui.
+// Ela agora é solicitada de forma contextual na tela "Explorar",
+// apenas quando o usuário toca em "Ativar Localização".
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-
-  // Efeito para solicitar a permissão de localização ao iniciar o app
-  useEffect(() => {
-    const requestLocationPermission = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        // Opcional: Você pode mostrar um alerta aqui informando ao usuário
-        // que a permissão é necessária para algumas funcionalidades.
-        console.log("Permissão de localização negada.");
-      }
-    };
-    requestLocationPermission();
-  }, []); // O array vazio garante que isso rode apenas uma vez.
 
   return (
     <Tabs
@@ -32,9 +21,7 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
-          ios: {
-            position: "absolute",
-          },
+          ios: { position: "absolute" },
           default: {},
         }),
       }}
@@ -44,7 +31,7 @@ export default function TabLayout() {
         options={{
           title: "Início",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name={"home"} size={size} color={color} />
+            <MaterialIcons name="home" size={size} color={color} />
           ),
         }}
       />
@@ -62,12 +49,19 @@ export default function TabLayout() {
         options={{
           title: "Eventos",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="event-busy" size={size} color={color} />
+            <MaterialIcons name="event" size={size} color={color} />
           ),
         }}
       />
-    
+      <Tabs.Screen
+        name="posts/index"
+        options={{
+          title: "Notícias",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="newspaper" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
-    
   );
 }

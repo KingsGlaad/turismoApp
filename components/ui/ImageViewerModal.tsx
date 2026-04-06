@@ -1,4 +1,3 @@
-import { Image as HighlightImage } from "@/types/Cities";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import {
@@ -13,8 +12,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+interface SimpleImage {
+  id: string;
+  url: string;
+}
+
 interface ImageViewerModalProps {
-  images: HighlightImage[];
+  images: SimpleImage[];
   visible: boolean;
   initialIndex: number;
   onClose: () => void;
@@ -38,7 +42,7 @@ export function ImageViewerModal({
     }
   }, [visible, initialIndex]);
 
-  const renderImage = ({ item }: { item: HighlightImage }) => (
+  const renderImage = ({ item }: { item: SimpleImage }) => (
     <View style={styles.imageContainer}>
       <Image source={{ uri: item.url }} style={styles.image} resizeMode="contain" />
     </View>

@@ -6,7 +6,6 @@ import {
   Image,
   Linking,
   Platform,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -16,11 +15,12 @@ import MapView, { Marker } from "react-native-maps";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { ThemedCard } from "@/components/theme/ThemedCard";
 import { CarouselPagination } from "@/components/ui/CarouselPagination";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { RenderHtml } from "@/components/utils/RenderHtml";
 import { fakeReviews } from "@/constants/data";
-import { Highlight } from "@/types/Cities";
+import { Highlight } from "@/types/Municipios";
 
 interface HighlightDetailProps {
   highlight: Highlight;
@@ -39,8 +39,6 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
   const ratingValue =
     Math.round(((highlight.id.charCodeAt(0) % 11) / 10 + 4.0) * 10) / 10; // Nota entre 4.0 e 5.0
   const reviewCount = (highlight.id.charCodeAt(1) % 50) + 15; // Entre 15 e 64 avaliações
-
- 
 
   // Efeito para auto-rolagem do carrossel
   useEffect(() => {
@@ -62,7 +60,7 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
       if (viewableItems.length > 0) {
         setActiveIndex(viewableItems[0].index ?? 0);
       }
-    }
+    },
   ).current;
 
   const handleGetDirections = () => {
@@ -82,7 +80,9 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
 
   const renderCarouselItem = ({
     item,
-  }: { item: (typeof highlight.images)[0] }) => (
+  }: {
+    item: (typeof highlight.images)[0];
+  }) => (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => {
@@ -129,7 +129,7 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
 
   // Função para renderizar o card de avaliação na FlatList
   const renderReviewItem = ({ item }: { item: (typeof fakeReviews)[0] }) => (
-    <View style={styles.reviewCard}>
+    <ThemedCard style={styles.reviewCard}>
       <View style={styles.reviewUserInfo}>
         <Image source={{ uri: item.avatarUrl }} style={styles.reviewAvatar} />
         <View>
@@ -140,7 +140,7 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
       <ThemedText style={styles.reviewComment} numberOfLines={4}>
         {item.comment}
       </ThemedText>
-    </View>
+    </ThemedCard>
   );
 
   return (
@@ -151,7 +151,6 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
         initialIndex={viewerInitialIndex}
         onClose={() => setViewerVisible(false)}
       />
-      <ScrollView>
       {/* Carrossel de Imagens */}
       {highlight.images && highlight.images.length > 0 && (
         <View style={styles.carouselWrapper}>
@@ -166,7 +165,10 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           />
-          <CarouselPagination data={highlight.images} activeIndex={activeIndex} />
+          <CarouselPagination
+            data={highlight.images}
+            activeIndex={activeIndex}
+          />
         </View>
       )}
 
@@ -227,10 +229,10 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
 
         {/* Conteúdo "Sobre" (se houver) */}
         {highlight.description && highlight.description.trim().length > 0 && (
-          <ThemedView style={[styles.section, styles.aboutSection]}>
+          <ThemedCard style={[styles.section, styles.aboutSection]}>
             <ThemedText type="subtitle">Sobre o local</ThemedText>
             <RenderHtml source={highlight.description} />
-          </ThemedView>
+          </ThemedCard>
         )}
 
         {/* Seção de Avaliações */}
@@ -246,7 +248,6 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
           />
         </ThemedView>
       </ThemedView>
-      </ScrollView>
     </>
   );
 }
@@ -278,7 +279,6 @@ const styles = StyleSheet.create({
   map: { height: 250, borderRadius: 12, marginVertical: 16 },
   section: { marginBottom: 16 },
   aboutSection: {
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
     padding: 16,
     borderRadius: 12,
     marginTop: 16,
@@ -309,7 +309,6 @@ const styles = StyleSheet.create({
   },
   reviewCard: {
     width: screenWidth * 0.7,
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
     borderRadius: 12,
     padding: 16,
     marginRight: 12,

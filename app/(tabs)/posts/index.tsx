@@ -1,7 +1,8 @@
+import { ThemedCard } from "@/components/theme/ThemedCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { QueryResult } from "@/components/utils/QueryResult";
-import { useEvents } from "@/hooks/queries/useEvents";
-import { Event } from "@/types/Municipios";
+import { usePosts } from "@/hooks/queries/usePosts";
+import { Post } from "@/types/Municipios";
 import { Link } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -13,9 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ThemedCard } from "@/components/theme/ThemedCard";
 
-// Função para formatar a data
 const formatDate = (dateString: string) => {
   if (!dateString) return "";
   const date = new Date(dateString);
@@ -27,8 +26,8 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const EventCard = ({ item }: { item: Event }) => (
-  <Link href={`/events/${item.id}`} asChild>
+const PostCard = ({ item }: { item: Post }) => (
+  <Link href={`/posts/${item.slug || item.id}` as any} asChild>
     <TouchableOpacity>
       <ThemedCard style={styles.card}>
         {item.image ? (
@@ -43,9 +42,11 @@ const EventCard = ({ item }: { item: Event }) => (
         )}
         <View style={styles.cardContent}>
           <ThemedText type="subtitle">{item.title}</ThemedText>
-          <ThemedText style={styles.cardDate}>{formatDate(item.date)}</ThemedText>
+          <ThemedText style={styles.cardDate}>
+            {formatDate(item.date)}
+          </ThemedText>
           <ThemedText style={styles.cardDescription} numberOfLines={3}>
-            {item.description}
+            {item.subtitle}
           </ThemedText>
         </View>
       </ThemedCard>
@@ -53,11 +54,9 @@ const EventCard = ({ item }: { item: Event }) => (
   </Link>
 );
 
-export default function EventsScreen() {
+export default function PostsScreen() {
   const { top } = useSafeAreaInsets();
-
-  // Migrado para useEvents do TanStack Query
-  const { data: events = [], isLoading, error, refetch } = useEvents();
+  const { data: posts = [], isLoading, error, refetch } = usePosts();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -70,19 +69,19 @@ export default function EventsScreen() {
     <QueryResult
       loading={isLoading && !refreshing}
       error={error?.message ?? null}
-      data={events}
-      loadingMessage="Carregando eventos..."
-      errorMessage="Erro ao carregar os eventos."
-      emptyMessage="Nenhum evento encontrado."
+      data={posts}
+      loadingMessage="Carregando notícias..."
+      errorMessage="Erro ao carregar as notícias."
+      emptyMessage="Nenhuma notícia encontrada."
     >
       <FlatList
-        data={events}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <EventCard item={item} />}
+        data={posts}
+        keyExtractor={(item) => item.slug || item.id}
+        renderItem={({ item }) => <PostCard item={item} />}
         contentContainerStyle={{ paddingTop: top, paddingHorizontal: 16 }}
         ListHeaderComponent={
           <ThemedText type="title" style={styles.headerTitle}>
-            Próximos Eventos
+            Últimas Notícias
           </ThemedText>
         }
         refreshControl={

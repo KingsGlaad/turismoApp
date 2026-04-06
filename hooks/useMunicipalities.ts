@@ -1,12 +1,11 @@
 import {
-  Event,
   Highlight,
   Municipality,
   MunicipalityListItem,
-} from "@/types/Cities";
+} from "@/types/Municipios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
- //const API_URL = "http://192.168.0.4:3000/api";
+//const API_URL = "http://192.168.0.4:3000/api";
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export function useMunicipalities(searchQuery: string = "") {
@@ -32,7 +31,7 @@ export function useMunicipalities(searchQuery: string = "") {
         setAllMunicipalities(data);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Erro ao carregar municípios"
+          err instanceof Error ? err.message : "Erro ao carregar municípios",
         );
       } finally {
         setLoading(false);
@@ -49,7 +48,7 @@ export function useMunicipalities(searchQuery: string = "") {
       return allMunicipalities;
     }
     return allMunicipalities.filter((municipality) =>
-      municipality.name.toLowerCase().includes(searchQuery.toLowerCase())
+      municipality.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [allMunicipalities, searchQuery]);
 
@@ -92,7 +91,7 @@ export function useMunicipality(slug: string) {
         setMunicipality(formattedData);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Erro ao carregar município"
+          err instanceof Error ? err.message : "Erro ao carregar município",
         );
       } finally {
         setLoading(false);
@@ -132,7 +131,7 @@ export function useMunicipalityGeoJson(ibgeCode?: string) {
         setGeojson(data);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Erro ao carregar GeoJSON"
+          err instanceof Error ? err.message : "Erro ao carregar GeoJSON",
         );
       } finally {
         setLoading(false);
@@ -180,7 +179,7 @@ export function useRandomHighlights() {
       setHighlights(formattedData);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Erro ao carregar destaques"
+        err instanceof Error ? err.message : "Erro ao carregar destaques",
       );
     } finally {
       setLoading(false);
@@ -229,7 +228,9 @@ export function useHighlight(id: string) {
       };
       setHighlight(formattedData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar destaque");
+      setError(
+        err instanceof Error ? err.message : "Erro ao carregar destaque",
+      );
     } finally {
       setLoading(false);
     }
@@ -318,10 +319,12 @@ export function useEvent(id: string) {
       const formattedData = {
         ...eventData, // Inclui todos os campos da resposta da API
         image: eventData.image || eventData.galleryImages?.[0]?.url || "",
-        galleryImages: eventData.galleryImages?.map((img: any, index: number) => ({
-          id: `${eventData.id}-img-${index}`,
-          url: img.url,
-        })),
+        galleryImages: eventData.galleryImages?.map(
+          (img: any, index: number) => ({
+            id: `${eventData.id}-img-${index}`,
+            url: img.url,
+          }),
+        ),
       };
       setEvent(formattedData);
     } catch (err) {

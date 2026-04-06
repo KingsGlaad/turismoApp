@@ -1,6 +1,8 @@
 import { MunicipalityList } from "@/components/municipio/MunicipalityList";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
+import { useCitiesSearch } from "@/hooks/queries/useCities";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, { useState } from "react";
@@ -13,6 +15,12 @@ export default function Page() {
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme ?? "light"];
 
+  const {
+    data: municipalities = [],
+    isLoading,
+    error,
+  } = useCitiesSearch(searchQuery);
+
   return (
     <ThemedView style={[styles.container, { paddingTop: top }]}>
       <ThemedView style={styles.header}>
@@ -21,6 +29,11 @@ export default function Page() {
           style={styles.logo}
           resizeMode="contain"
         />
+        <ThemedText
+          style={{ color: themeColors.text, marginBottom: 16, marginTop: -15 }}
+        >
+          Circuito Mogiana
+        </ThemedText>
         <ThemedView
           style={[styles.searchContainer, { borderColor: themeColors.icon }]}
         >
@@ -34,7 +47,11 @@ export default function Page() {
           />
         </ThemedView>
       </ThemedView>
-      <MunicipalityList searchQuery={searchQuery} />
+      <MunicipalityList
+        municipalities={municipalities}
+        loading={isLoading}
+        error={error?.message ?? null}
+      />
     </ThemedView>
   );
 }

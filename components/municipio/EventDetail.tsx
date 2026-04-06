@@ -1,19 +1,14 @@
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { ThemedCard } from "@/components/theme/ThemedCard";
 import { ImageCarousel } from "@/components/ui/ImageCarousel";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { fakeReviews } from "@/constants/data";
-import { Image as CityImage, Event } from "@/types/Cities";
+import { Image as CityImage, Event } from "@/types/Municipios";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-    Dimensions,
-    FlatList,
-    Image,
-    StyleSheet,
-    View
-} from "react-native";
+import { Dimensions, FlatList, Image, StyleSheet, View } from "react-native";
 import { formatDate } from "../utils/dateUtils";
 import { RenderHtml } from "../utils/RenderHtml";
 
@@ -100,18 +95,20 @@ export function EventDetail({ event }: EventDetailProps) {
 
   // Função para renderizar o card de avaliação na FlatList
   const renderReviewItem = ({ item }: { item: (typeof fakeReviews)[0] }) => (
-    <View style={reviewCardStyle}>
+    <ThemedCard style={reviewCardStyle}>
       <View style={styles.reviewUserInfo}>
         <Image source={{ uri: item.avatarUrl }} style={styles.reviewAvatar} />
         <View>
-          <ThemedText style={styles.reviewAuthor} numberOfLines={1}>{item.author}</ThemedText>
+          <ThemedText style={styles.reviewAuthor} numberOfLines={1}>
+            {item.author}
+          </ThemedText>
         </View>
         {renderStars(item.rating)}
       </View>
       <ThemedText style={styles.reviewComment} numberOfLines={4}>
         {item.comment}
       </ThemedText>
-    </View>
+    </ThemedCard>
   );
 
   const { width: screenWidth } = Dimensions.get("window");
@@ -138,7 +135,7 @@ export function EventDetail({ event }: EventDetailProps) {
         )}
 
         <ThemedView style={styles.content}>
-          <View style={styles.dateContainer}>
+          <ThemedCard style={styles.dateContainer}>
             <View style={styles.dateInfo}>
               <MaterialIcons name="event" size={16} color="#6b7280" />
               <ThemedText style={styles.dateText}>
@@ -147,10 +144,13 @@ export function EventDetail({ event }: EventDetailProps) {
             </View>
             {event.municipality?.name && (
               <ThemedText style={styles.municipalityText}>
-                em <Link href={`/cities/${event.municipality.slug}`}>{event.municipality.name}</Link>
+                em{" "}
+                <Link href={`/cities/${event.municipality.slug}`}>
+                  {event.municipality.name}
+                </Link>
               </ThemedText>
             )}
-          </View>
+          </ThemedCard>
           {event.description && <RenderHtml source={event.description} />}
 
           {/* Seção de Avaliações */}
@@ -216,7 +216,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   dateContainer: {
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -265,7 +264,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   reviewCard: {
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
     borderRadius: 12,
     padding: 16,
     marginRight: 12,

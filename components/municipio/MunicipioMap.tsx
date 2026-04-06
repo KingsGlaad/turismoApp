@@ -1,17 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { forwardRef, useEffect, useState } from "react";
-import {
-  Linking,
-  Platform,
-  StyleSheet,
-  View
-} from "react-native";
+import { Linking, Platform, StyleSheet, View } from "react-native";
 import MapView, { Geojson, Marker } from "react-native-maps";
 // Corrigidos os caminhos de importação para usar caminhos relativos
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Highlight } from "@/types/Cities";
+import { Highlight } from "@/types/Municipios";
 import { mapStyleDark } from "./mapStyleDark";
-
 
 interface MunicipioMapProps {
   highlights: Highlight[];
@@ -39,7 +33,7 @@ const MunicipioMap = forwardRef<MapView, MunicipioMapProps>(
       const loadGeoJson = async () => {
         try {
           const response = await fetch(
-            `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${ibgeCode}?formato=application/vnd.geo+json`
+            `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${ibgeCode}?formato=application/vnd.geo+json`,
           );
           if (!response.ok) {
             throw new Error("GeoJSON não encontrado para este município.");
@@ -58,7 +52,7 @@ const MunicipioMap = forwardRef<MapView, MunicipioMapProps>(
     const handleGetDirections = (
       latitude: number,
       longitude: number,
-      name: string
+      name: string,
     ) => {
       const scheme = Platform.select({
         ios: "maps:0,0?q=",
@@ -118,7 +112,7 @@ const MunicipioMap = forwardRef<MapView, MunicipioMapProps>(
         </MapView>
       </View>
     );
-  }
+  },
 );
 
 const styles = StyleSheet.create({

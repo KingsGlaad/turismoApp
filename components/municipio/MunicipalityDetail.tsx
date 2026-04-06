@@ -3,7 +3,7 @@ import {
   Highlight,
   Municipality,
   Image as MunicipalityImage,
-} from "@/types/Cities";
+} from "@/types/Municipios";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -22,6 +22,7 @@ import {
 import MapView from "react-native-maps";
 import { ThemedText } from "../theme/ThemedText";
 import { ThemedView } from "../theme/ThemedView";
+import { ThemedCard } from "../theme/ThemedCard";
 import { ImageViewerModal } from "../ui/ImageViewerModal";
 import { RenderHtml } from "../utils/RenderHtml";
 import MunicipioMap from "./MunicipioMap";
@@ -138,16 +139,18 @@ export function MunicipalityDetail({ municipality }: MunicipalityDetailProps) {
 
     return (
       <Link href={`/events/${item.id}`} asChild>
-        <TouchableOpacity style={styles.eventContainer}>
-          {item.image && (
-            <Image source={{ uri: item.image }} style={styles.eventImage} />
-          )}
-          <View style={styles.eventContent}>
-            <ThemedText style={styles.eventTitle} numberOfLines={2}>
-              {item.title}
-            </ThemedText>
-            <ThemedText style={styles.eventDate}>{formattedDate}</ThemedText>
-          </View>
+        <TouchableOpacity>
+          <ThemedCard style={styles.eventContainer}>
+            {item.image && (
+              <Image source={{ uri: item.image }} style={styles.eventImage} />
+            )}
+            <View style={styles.eventContent}>
+              <ThemedText style={styles.eventTitle} numberOfLines={2}>
+                {item.title}
+              </ThemedText>
+              <ThemedText style={styles.eventDate}>{formattedDate}</ThemedText>
+            </View>
+          </ThemedCard>
         </TouchableOpacity>
       </Link>
     );
@@ -239,24 +242,23 @@ export function MunicipalityDetail({ municipality }: MunicipalityDetailProps) {
 
         {/* 5. "About" Section */}
         {municipality.about && (
-          <ThemedView style={[styles.section, styles.aboutSection]}>
+          <ThemedCard style={[styles.section, styles.aboutSection]}>
             <ThemedText type="subtitle">Sobre</ThemedText>
             <RenderHtml source={municipality.about} />
-          </ThemedView>
+          </ThemedCard>
         )}
 
         {/* 6. Events Accordion */}
         {municipality.events && municipality.events.length > 0 && (
           <ThemedView style={styles.section}>
             <ThemedText type="subtitle">Eventos</ThemedText>
-            <FlatList
-              data={municipality.events}
-              renderItem={renderEventItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingVertical: 10 }}
-              showsVerticalScrollIndicator={false}
-              horizontal={false}
-            />
+            <View style={{ paddingVertical: 10 }}>
+              {municipality.events.map((item) => (
+                <React.Fragment key={item.id}>
+                  {renderEventItem({ item })}
+                </React.Fragment>
+              ))}
+            </View>
           </ThemedView>
         )}
       </ThemedView>
@@ -307,7 +309,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   aboutSection: {
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
     padding: 16,
     borderRadius: 12,
     marginTop: 16,
@@ -374,7 +375,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   eventContainer: {
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
     borderRadius: 12,
     overflow: "hidden",
     marginBottom: 12,

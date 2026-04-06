@@ -3,13 +3,10 @@ import { Link, router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
-  Image,
   ImageBackground,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   View,
   ViewToken,
@@ -17,21 +14,21 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ThemedCard } from "@/components/theme/ThemedCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { CachedImage } from "@/components/ui/CachedImage";
 import { CarouselPagination } from "@/components/ui/CarouselPagination";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
-import {
-  useMunicipalities,
-  useRandomHighlights,
-} from "@/hooks/useMunicipalities";
+import { useCities } from "@/hooks/queries/useCities";
+import { useRandomHighlights } from "@/hooks/queries/useHighlights";
 import {
   Highlight,
   Image as HighlightImage,
   MunicipalityListItem,
-} from "@/types/Cities";
+} from "@/types/Municipios";
+import { styles } from "./_style";
 
-// --- Função para calcular distância (Fórmula de Haversine) ---
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Raio da Terra em km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -42,72 +39,65 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distância em km
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-
-const { width: screenWidth } = Dimensions.get("window");
 
 export default function ExploreScreen() {
   const { top } = useSafeAreaInsets();
-  const { municipalities, loading: loadingMunicipalities } =
-    useMunicipalities();
+
+  const { data: municipalities = [], isLoading: loadingMunicipalities } =
+    useCities();
   const {
-    highlights: randomHighlights,
-    loading: loadingHighlights,
+    data: randomHighlights = [],
+    isLoading: loadingHighlights,
     error: errorHighlights,
     refetch: refetchHighlights,
   } = useRandomHighlights();
+
   const [location, setLocation] = useState<Location.LocationObject | null>(
-    null
+    null,
   );
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [nearbyMunicipalities, setNearbyMunicipalities] = useState<
     (MunicipalityListItem & { distance: number })[]
   >([]);
+
+  const handleEnableLocation = useCallback(async () => {
+    setLocationError(null);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      setLocationError(
+        "Permissão de localização negada. Ative nas configurações do dispositivo para ver locais próximos.",
+      );
+      return;
+    }
+    const current = await Location.getCurrentPositionAsync({});
+    setLocation(current);
+  }, []);
+
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Busca novos destaques aleatórios
     await refetchHighlights();
     setRefreshing(false);
   }, [refetchHighlights]);
 
-  const handleLocationPermission = async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      setErrorMsg(
-        "Permissão para acessar a localização foi negada. Ative nas configurações do seu dispositivo."
-      );
-      return;
-    }
-
-    let currentLocation = await Location.getCurrentPositionAsync({});
-    setLocation(currentLocation);
-  };
-
   useEffect(() => {
-    handleLocationPermission();
-  }, []);
-
-  useEffect(() => {
-    if (location && municipalities.length > 0) {
-      const sorted = municipalities
-        .map((city) => {
-          const distance = getDistance(
-            location.coords.latitude,
-            location.coords.longitude,
-            city.latitude,
-            city.longitude
-          );
-          return { ...city, distance };
-        })
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 10); // Pega os 10 mais próximos
-
-      setNearbyMunicipalities(sorted);
-    }
+    if (!location || municipalities.length === 0) return;
+    const sorted = municipalities
+      .map((city) => ({
+        ...city,
+        distance: getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          city.latitude,
+          city.longitude,
+        ),
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 10);
+    setNearbyMunicipalities(sorted);
   }, [location, municipalities]);
 
   const renderNearbyCity = ({
@@ -115,7 +105,10 @@ export default function ExploreScreen() {
   }: {
     item: MunicipalityListItem & { distance: number };
   }) => (
-    <Link href={{ pathname: "/cities/[slug]", params: { slug: item.slug } }} asChild>
+    <Link
+      href={{ pathname: "/cities/[slug]", params: { slug: item.slug } }}
+      asChild
+    >
       <TouchableOpacity>
         <ImageBackground
           source={{ uri: item.coatOfArms }}
@@ -124,26 +117,22 @@ export default function ExploreScreen() {
         >
           <View style={styles.cardOverlay}>
             <ThemedText style={styles.cardTitle}>{item.name}</ThemedText>
-            <ThemedText style={styles.distanceText}>{`${item.distance.toFixed(
-              1
-            )} km`}</ThemedText>
+            <ThemedText style={styles.distanceText}>
+              {`${item.distance.toFixed(1)} km`}
+            </ThemedText>
           </View>
         </ImageBackground>
       </TouchableOpacity>
     </Link>
   );
 
-  // Componente extraído para gerenciar o estado do slider individualmente
   const HighlightCard = ({ item }: { item: Highlight }) => {
     const flatListRef = useRef<FlatList<HighlightImage>>(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [isViewerVisible, setViewerVisible] = useState(false);
-    const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
-    // Efeito para rolagem automática do carrossel
     useEffect(() => {
       if (!item.images || item.images.length <= 1) return;
-
       const interval = setInterval(() => {
         const nextIndex = (activeIndex + 1) % item.images.length;
         flatListRef.current?.scrollToIndex({
@@ -151,78 +140,70 @@ export default function ExploreScreen() {
           index: nextIndex,
         });
         setActiveIndex(nextIndex);
-      }, 3000); // Muda a cada 3 segundos
-
-      return () => clearInterval(interval); // Limpa o intervalo ao desmontar
+      }, 3000);
+      return () => clearInterval(interval);
     }, [activeIndex, item.images]);
-
-    const handleScrollBegin = () => {
-      // Poderíamos pausar o intervalo aqui se quiséssemos
-    };
-
-    const handleScrollEnd = () => {
-      // E reiniciar o intervalo aqui
-    };
 
     const onViewableItemsChanged = useRef(
       ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-        if (viewableItems.length > 0) {
+        if (viewableItems.length > 0)
           setActiveIndex(viewableItems[0].index ?? 0);
-        }
-      }
+      },
     ).current;
 
-    const renderCarouselItem = ({ item: image }: { item: HighlightImage }) => (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => {
-          setViewerInitialIndex(activeIndex);
-          setViewerVisible(true);
-        }}
-      >
-        <View style={styles.carouselItemContainer}>
-          <Image source={{ uri: image.url }} style={styles.highlightImage} />
-        </View>
-      </TouchableOpacity>
-    );
-
     return (
-      <View style={styles.highlightCard}>
+      <ThemedCard style={styles.highlightCard}>
         <ImageViewerModal
           images={item.images}
           visible={isViewerVisible}
-          initialIndex={viewerInitialIndex}
+          initialIndex={activeIndex}
           onClose={() => setViewerVisible(false)}
         />
         <TouchableOpacity
           onPress={() =>
-            router.push({ pathname: "/highlights/[id]", params: { id: item.id } })
+            router.push({
+              pathname: "/highlights/[id]",
+              params: { id: item.id },
+            })
           }
         >
-        <View>
           {item.images && item.images.length > 0 ? (
             <View style={styles.carouselWrapper}>
               <FlatList
                 ref={flatListRef}
                 data={item.images}
-                renderItem={renderCarouselItem}
+                renderItem={({ item: image, index }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => setViewerVisible(true)}
+                    style={styles.carouselItemContainer}
+                  >
+                    <CachedImage
+                      source={{ uri: image.url }}
+                      style={styles.highlightImage}
+                    />
+                  </TouchableOpacity>
+                )}
                 keyExtractor={(img) => `${item.id}-${img.id}`}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 onViewableItemsChanged={onViewableItemsChanged}
                 viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-                onScrollBeginDrag={handleScrollBegin}
-                onScrollEndDrag={handleScrollEnd}
               />
-              <CarouselPagination data={item.images} activeIndex={activeIndex} />
+              <CarouselPagination
+                data={item.images}
+                activeIndex={activeIndex}
+              />
             </View>
           ) : (
             <View style={[styles.carouselWrapper, styles.placeholderImage]} />
           )}
-        </View>
         </TouchableOpacity>
-        <Link href={{ pathname: "/highlights/[id]", params: { id: item.id } }} asChild>
+        <Link
+          href={{ pathname: "/highlights/[id]", params: { id: item.id } }}
+          asChild
+        >
           <TouchableOpacity>
             <View style={styles.highlightContent}>
               <ThemedText type="subtitle">{item.title}</ThemedText>
@@ -232,7 +213,7 @@ export default function ExploreScreen() {
             </View>
           </TouchableOpacity>
         </Link>
-      </View>
+      </ThemedCard>
     );
   };
 
@@ -246,16 +227,23 @@ export default function ExploreScreen() {
       >
         {/* Seção do Mapa */}
         <View style={styles.mapSection}>
-          {errorMsg ? (
-            <View style={styles.mapErrorContainer}>
-              <ThemedText style={styles.errorText}>{errorMsg}</ThemedText>
+          {locationError ? (
+            <View style={styles.mapPlaceholder}>
+              <ThemedText style={styles.errorText}>{locationError}</ThemedText>
             </View>
           ) : !location ? (
-            <View style={styles.mapErrorContainer}>
-              <ActivityIndicator />
-              <ThemedText style={{ marginTop: 8 }}>
-                Obtendo localização...
+            <View style={styles.mapPlaceholder}>
+              <ThemedText style={styles.placeholderText}>
+                Descubra locais turísticos próximos a você
               </ThemedText>
+              <TouchableOpacity
+                style={styles.enableLocationButton}
+                onPress={handleEnableLocation}
+              >
+                <ThemedText style={styles.enableLocationText}>
+                  📍 Ativar Localização
+                </ThemedText>
+              </TouchableOpacity>
             </View>
           ) : (
             <MapView
@@ -276,35 +264,37 @@ export default function ExploreScreen() {
         </View>
 
         <View style={styles.content}>
-          {/* Seção de Municípios Próximos */}
-          <ThemedView style={styles.section}>
-            <ThemedText type="subtitle">Perto de você</ThemedText>
-            {loadingMunicipalities && !nearbyMunicipalities.length ? (
-              <ActivityIndicator style={{ marginTop: 10 }} />
-            ) : (
-              <FlatList
-                data={nearbyMunicipalities}
-                renderItem={renderNearbyCity}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.listContent}
-              />
-            )}
-          </ThemedView>
+          {/* Municípios próximos — só exibe quando a localização está ativa */}
+          {nearbyMunicipalities.length > 0 && (
+            <ThemedView style={styles.section}>
+              <ThemedText type="subtitle">Perto de você</ThemedText>
+              {loadingMunicipalities && !nearbyMunicipalities.length ? (
+                <ActivityIndicator style={{ marginTop: 10 }} />
+              ) : (
+                <FlatList
+                  data={nearbyMunicipalities}
+                  renderItem={renderNearbyCity}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.listContent}
+                />
+              )}
+            </ThemedView>
+          )}
 
           {/* Seção de Destaques Aleatórios */}
           <ThemedView style={styles.section}>
             <ThemedText type="subtitle">Descubra</ThemedText>
             {errorHighlights ? (
               <ThemedText style={styles.errorText}>
-                {errorHighlights}
+                {errorHighlights.message}
               </ThemedText>
             ) : loadingHighlights ? (
               <ActivityIndicator style={{ marginTop: 10 }} />
             ) : (
               <FlatList
-                scrollEnabled={false} // A rolagem principal é do ScrollView
+                scrollEnabled={false}
                 data={randomHighlights}
                 renderItem={({ item }) => <HighlightCard item={item} />}
                 keyExtractor={(item) => item.id}
@@ -316,97 +306,3 @@ export default function ExploreScreen() {
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  listContent: {
-    paddingTop: 10,
-  },
-  horizontalCard: {
-    width: 180,
-    height: 100,
-    padding: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    justifyContent: "space-between",
-    overflow: "hidden", // Garante que a imagem respeite o borderRadius
-  },
-  cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    borderRadius: 12,
-    padding: 16,
-    justifyContent: "space-between",
-  },
-  cardTitle: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  cardSubtitle: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    alignSelf: "flex-start",
-  },
-  distanceText: {
-    fontSize: 14,
-    color: "#FFFFFF",
-    alignSelf: "flex-end",
-    fontWeight: "500",
-  },
-  errorText: {
-    marginTop: 10,
-    color: "#EF4444",
-  },
-  mapSection: {
-    height: 200,
-  },
-  mapErrorContainer: {
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  // --- Highlight Card Styles ---
-  highlightCard: {
-    marginBottom: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(128, 128, 128, 0.1)",
-    overflow: "hidden",
-  },
-  carouselWrapper: {
-    height: 200,
-  },
-  carouselItemContainer: {
-    width: screenWidth - 32, // screen width - (paddingHorizontal * 2)
-    height: 200,
-  },
-  highlightImage: {
-    width: "100%",
-    height: "100%",
-  },
-  placeholderImage: {
-    backgroundColor: "rgba(128, 128, 128, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  highlightContent: {
-    padding: 16,
-  },
-  highlightDescription: {
-    marginTop: 8,
-    color: "#6b7280",
-  },
-});

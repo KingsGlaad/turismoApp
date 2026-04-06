@@ -1,32 +1,32 @@
-import { EventDetail } from "@/components/municipio/EventDetail";
+import { PostDetail } from "@/components/posts/PostDetail";
 import { QueryResult } from "@/components/utils/QueryResult";
-import { useEvent } from "@/hooks/queries/useEvents";
+import { usePost } from "@/hooks/queries/usePosts";
 import { Stack, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { RefreshControl, ScrollView } from "react-native";
 
-export default function EventDetailsPage() {
-  const { id } = useLocalSearchParams();
-  const eventId = Array.isArray(id) ? id[0] : id || "";
+export default function PostDetailsPage() {
+  const { slug } = useLocalSearchParams();
+  const postSlug = Array.isArray(slug) ? slug[0] : slug || "";
 
-  const { data: event, isLoading, error, refetch } = useEvent(eventId);
+  const { data: post, isLoading, error, refetch } = usePost(postSlug);
 
   return (
     <QueryResult
       loading={isLoading}
       error={error?.message ?? null}
-      data={event}
-      errorMessage="Erro ao carregar o evento."
+      data={post}
+      errorMessage="Erro ao carregar a notícia."
     >
-      {event && (
+      {post && (
         <>
-          <Stack.Screen options={{ title: event.title }} />
+          <Stack.Screen options={{ title: "Notícia" }} />
           <ScrollView
             refreshControl={
               <RefreshControl refreshing={false} onRefresh={() => refetch()} />
             }
           >
-            <EventDetail event={event} />
+            <PostDetail post={post} />
           </ScrollView>
         </>
       )}

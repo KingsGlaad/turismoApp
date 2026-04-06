@@ -1,28 +1,32 @@
+import { CachedImage } from "@/components/ui/CachedImage";
+import { MunicipalityListItem } from "@/types/Municipios";
+import { Link } from "expo-router";
 import React from "react";
 import {
-  View,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  StyleSheet,
-  Image,
+  View,
 } from "react-native";
-import { Link, router } from "expo-router";
-import { useMunicipalities } from "@/hooks/useMunicipalities";
-import { MunicipalityListItem } from "@/types/Cities";
 
 interface MunicipalityListProps {
-  searchQuery?: string;
+  /** Lista de municípios já filtrados e buscados pelo componente pai */
+  municipalities: MunicipalityListItem[];
+  loading?: boolean;
+  error?: string | null;
 }
 
-export function MunicipalityList({ searchQuery = "" }: MunicipalityListProps) {
-  const { municipalities, loading, error } = useMunicipalities(searchQuery);
-
+export function MunicipalityList({
+  municipalities,
+  loading = false,
+  error = null,
+}: MunicipalityListProps) {
   if (loading) {
     return (
       <View style={styles.centeredContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#1A6B47" />
         <Text style={styles.loadingText}>Carregando municípios...</Text>
       </View>
     );
@@ -41,10 +45,10 @@ export function MunicipalityList({ searchQuery = "" }: MunicipalityListProps) {
   const renderMunicipality = ({ item }: { item: MunicipalityListItem }) => (
     <Link href={`/cities/${item.slug}`} asChild>
       <TouchableOpacity style={styles.itemContainer}>
-        <Image
+        <CachedImage
           source={{ uri: item.coatOfArms }}
           style={styles.itemImage}
-          resizeMode="cover"
+          contentFit="cover"
         />
         <View style={styles.overlay}>
           <Text style={styles.itemName}>{item.name}</Text>
@@ -84,27 +88,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemContainer: {
-    height: 150, // Altura de cada card
+    height: 150,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 2, // Adiciona um pequeno espaço entre os cards
+    marginBottom: 2,
   },
   itemImage: {
     width: "100%",
     height: "100%",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject, // Ocupa todo o espaço do pai
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Sobreposição escura para contraste
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   itemName: {
     fontSize: 30,
     fontWeight: "600",
-    color: "#FFFFFF", // Texto branco
+    color: "#FFFFFF",
     textAlign: "center",
-    // Adiciona uma sombra sutil ao texto para melhor legibilidade
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: -1, height: 1 },
     textShadowRadius: 10,

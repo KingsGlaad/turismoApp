@@ -26,6 +26,20 @@ export interface Attraction {
   description: string;
 }
 
+export interface Post {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  content?: string;
+  image?: string;
+  date: string;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: string;
+}
+
 export interface Event {
   id: string;
   title: string;
