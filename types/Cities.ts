@@ -2,7 +2,10 @@ export interface Highlight {
   id: string;
   title: string;
   description: string;
-  images: [];
+  images: {
+    id: string;
+    url: string;
+  }[];
   latitude: number;
   longitude: number;
   municipalityId: string;
@@ -29,6 +32,13 @@ export interface Event {
   date: string; // ISO date string
   description: string;
   image?: string;
+  latitude?: number;
+  longitude?: number;
+  galleryImages?: {
+    id: string;
+    url: string;
+  }[];
+  municipality: Municipality;
 }
 
 export interface Guide {
@@ -81,4 +91,3 @@ export type MunicipalityListItem = Pick<
  * Representa a estrutura de um destaque popular,
  * retornada pela API para a tela de exploração.
  */
-

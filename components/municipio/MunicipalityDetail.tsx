@@ -1,28 +1,30 @@
+import {
+  Event,
+  Highlight,
+  Municipality,
+  Image as MunicipalityImage,
+} from "@/types/Cities";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Link } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Linking,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  FlatList,
   Dimensions,
-  View,
+  FlatList,
+  Image,
+  Linking,
   Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
   ViewToken,
 } from "react-native";
-import MunicipioMap from "./MunicipioMap";
-import {
-  Highlight,
-  Image as MunicipalityImage,
-  Event,
-  Municipality,
-} from "@/types/Cities";
-import { ThemedView } from "../theme/ThemedView";
-import { ThemedText } from "../theme/ThemedText";
 import MapView from "react-native-maps";
+import { ThemedText } from "../theme/ThemedText";
+import { ThemedView } from "../theme/ThemedView";
+import { ImageViewerModal } from "../ui/ImageViewerModal";
 import { RenderHtml } from "../utils/RenderHtml";
-import { MaterialIcons } from "@expo/vector-icons";
+import MunicipioMap from "./MunicipioMap";
 
 interface MunicipalityDetailProps {
   municipality: Municipality;
@@ -34,7 +36,8 @@ export function MunicipalityDetail({ municipality }: MunicipalityDetailProps) {
   const mapRef = useRef<MapView>(null);
   const flatListRef = useRef<FlatList<MunicipalityImage>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [isViewerVisible, setViewerVisible] = useState(false);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
   // Efeito para auto-rolagem do carrossel
   useEffect(() => {
@@ -67,7 +70,7 @@ export function MunicipalityDetail({ municipality }: MunicipalityDetailProps) {
   };
 
   const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
       // Usa o primeiro item visível para definir o índice ativo.
       if (viewableItems.length > 0) {
         setActiveIndex(viewableItems[0].index ?? 0);
@@ -93,57 +96,71 @@ export function MunicipalityDetail({ municipality }: MunicipalityDetailProps) {
   };
   const renderCarouselItem = ({ item }: { item: MunicipalityImage }) => {
     return (
-      <ThemedView style={styles.carouselItemContainer}>
-        <Image source={{ uri: item.url }} style={styles.headerImage} />
-      </ThemedView>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={() => {
+          setViewerInitialIndex(activeIndex);
+          setViewerVisible(true);
+        }}
+      >
+        <ThemedView style={styles.carouselItemContainer}>
+          <Image source={{ uri: item.url }} style={styles.headerImage} />
+        </ThemedView>
+      </TouchableOpacity>
     );
   };
 
   const renderHighlightItem = ({ item }: { item: Highlight }) => (
-    <TouchableOpacity
-      style={styles.highlightCard}
-      onPress={() => handleHighlightPress(item)}
-    >
-      <ThemedText style={styles.highlightCardTitle}>{item.title}</ThemedText>
-    </TouchableOpacity>
+    <Link href={`/highlights/${item.id}`} asChild>
+      <TouchableOpacity
+        style={styles.highlightCard}
+        onPress={() => handleHighlightPress(item)}
+      >
+        {item.images && item.images.length > 0 && (
+          <Image
+            source={{ uri: item.images[0].url }}
+            style={styles.highlightImage}
+          />
+        )}
+        <View style={styles.highlightOverlay}>
+          <ThemedText style={styles.highlightCardTitle}>{item.title}</ThemedText>
+        </View>
+      </TouchableOpacity>
+    </Link>
   );
 
   const renderEventItem = ({ item }: { item: Event }) => {
-    const isExpanded = expandedEventId === item.id;
     const eventDate = new Date(item.date);
     const formattedDate = eventDate.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "long",
-      year: "numeric",
     });
 
     return (
-      <View style={styles.eventContainer}>
-        <TouchableOpacity
-          style={styles.eventHeader}
-          onPress={() => setExpandedEventId(isExpanded ? null : item.id)}
-        >
-          <ThemedText style={styles.eventTitle}>{item.title}</ThemedText>
-          <MaterialIcons
-            name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-            size={24}
-            color="#6b7280"
-          />
-        </TouchableOpacity>
-        {isExpanded && (
+      <Link href={`/events/${item.id}`} asChild>
+        <TouchableOpacity style={styles.eventContainer}>
+          {item.image && (
+            <Image source={{ uri: item.image }} style={styles.eventImage} />
+          )}
           <View style={styles.eventContent}>
-            {item.image && (
-              <Image source={{ uri: item.image }} style={styles.eventImage} />
-            )}
+            <ThemedText style={styles.eventTitle} numberOfLines={2}>
+              {item.title}
+            </ThemedText>
             <ThemedText style={styles.eventDate}>{formattedDate}</ThemedText>
-            <ThemedText>{item.description}</ThemedText>
           </View>
-        )}
-      </View>
+        </TouchableOpacity>
+      </Link>
     );
   };
   return (
-    <ScrollView>
+    <>
+      <ImageViewerModal
+        images={municipality.images}
+        visible={isViewerVisible}
+        initialIndex={viewerInitialIndex}
+        onClose={() => setViewerVisible(false)}
+      />
+      <ScrollView>
       {/* 1. Image Slider */}
       {municipality.images && municipality.images.length > 1 && (
         <View style={styles.carouselWrapper}>
@@ -236,13 +253,15 @@ export function MunicipalityDetail({ municipality }: MunicipalityDetailProps) {
               data={municipality.events}
               renderItem={renderEventItem}
               keyExtractor={(item) => item.id}
-              scrollEnabled={false} // Desativa a rolagem da lista interna
               contentContainerStyle={{ paddingVertical: 10 }}
+              showsVerticalScrollIndicator={false}
+              horizontal={false}
             />
           </ThemedView>
         )}
       </ThemedView>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
@@ -294,15 +313,29 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   highlightCard: {
-    backgroundColor: "rgba(128, 128, 128, 0.2)",
-    padding: 12,
-    borderRadius: 8,
+    width: 150,
+    height: 200,
+    borderRadius: 12,
     marginRight: 10,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: "rgba(128, 128, 128, 0.1)",
+  },
+  highlightImage: {
+    width: "100%",
+    height: "100%",
+  },
+  highlightOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    justifyContent: "flex-end",
+    padding: 8,
   },
   highlightCardTitle: {
-    fontWeight: "500",
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    textAlign: "center",
   },
   paginationContainer: {
     flexDirection: "row",
@@ -341,33 +374,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   eventContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(128, 128, 128, 0.2)",
-    paddingVertical: 12,
-  },
-  eventHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
   },
   eventTitle: {
     fontSize: 16,
     fontWeight: "600",
-    flex: 1,
   },
   eventContent: {
-    marginTop: 12,
+    padding: 12,
   },
   eventImage: {
     width: "100%",
     height: 180,
-    borderRadius: 8,
-    marginBottom: 12,
   },
   eventDate: {
-    fontSize: 14,
-    fontWeight: "bold",
+    fontSize: 12,
     color: "#6b7280",
-    marginBottom: 8,
+    marginTop: 4,
   },
 });

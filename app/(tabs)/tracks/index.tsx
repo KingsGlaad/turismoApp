@@ -1,5 +1,5 @@
 import * as Location from "expo-location";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +19,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { CarouselPagination } from "@/components/ui/CarouselPagination";
+import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import {
   useMunicipalities,
   useRandomHighlights,
@@ -113,7 +115,7 @@ export default function ExploreScreen() {
   }: {
     item: MunicipalityListItem & { distance: number };
   }) => (
-    <Link href={`/cities/${item.slug}`} asChild>
+    <Link href={{ pathname: "/cities/[slug]", params: { slug: item.slug } }} asChild>
       <TouchableOpacity>
         <ImageBackground
           source={{ uri: item.coatOfArms }}
@@ -135,6 +137,8 @@ export default function ExploreScreen() {
   const HighlightCard = ({ item }: { item: Highlight }) => {
     const flatListRef = useRef<FlatList<HighlightImage>>(null);
     const [activeIndex, setActiveIndex] = useState(0);
+    const [isViewerVisible, setViewerVisible] = useState(false);
+    const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
     // Efeito para rolagem automática do carrossel
     useEffect(() => {
@@ -169,18 +173,32 @@ export default function ExploreScreen() {
     ).current;
 
     const renderCarouselItem = ({ item: image }: { item: HighlightImage }) => (
-      <Link href={{ pathname: "/highligts", params: { id: item.id } }} asChild>
-        <TouchableOpacity activeOpacity={0.9}>
-          <View style={styles.carouselItemContainer}>
-            <Image source={{ uri: image.url }} style={styles.highlightImage} />
-          </View>
-        </TouchableOpacity>
-      </Link>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => {
+          setViewerInitialIndex(activeIndex);
+          setViewerVisible(true);
+        }}
+      >
+        <View style={styles.carouselItemContainer}>
+          <Image source={{ uri: image.url }} style={styles.highlightImage} />
+        </View>
+      </TouchableOpacity>
     );
 
     return (
       <View style={styles.highlightCard}>
-        {/* Image Slider */}
+        <ImageViewerModal
+          images={item.images}
+          visible={isViewerVisible}
+          initialIndex={viewerInitialIndex}
+          onClose={() => setViewerVisible(false)}
+        />
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: "/highlights/[id]", params: { id: item.id } })
+          }
+        >
         <View>
           {item.images && item.images.length > 0 ? (
             <View style={styles.carouselWrapper}>
@@ -197,26 +215,14 @@ export default function ExploreScreen() {
                 onScrollBeginDrag={handleScrollBegin}
                 onScrollEndDrag={handleScrollEnd}
               />
-              {item.images.length > 1 && (
-                <View style={styles.paginationContainer}>
-                  {item.images.map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.paginationDot,
-                        activeIndex === index && styles.paginationDotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
+              <CarouselPagination data={item.images} activeIndex={activeIndex} />
             </View>
           ) : (
             <View style={[styles.carouselWrapper, styles.placeholderImage]} />
           )}
         </View>
-
-        <Link href={{ pathname: "/highligts", params: { id: item.id } }} asChild>
+        </TouchableOpacity>
+        <Link href={{ pathname: "/highlights/[id]", params: { id: item.id } }} asChild>
           <TouchableOpacity>
             <View style={styles.highlightContent}>
               <ThemedText type="subtitle">{item.title}</ThemedText>
@@ -255,11 +261,11 @@ export default function ExploreScreen() {
             <MapView
               style={styles.map}
               mapType="satellite"
-              initialRegion={{
+              region={{
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
-                latitudeDelta: 0.5,
-                longitudeDelta: 0.5,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.02,
               }}
               showsUserLocation
               showsMyLocationButton={false}
@@ -395,22 +401,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(128, 128, 128, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  paginationContainer: {
-    flexDirection: "row",
-    position: "absolute",
-    bottom: 10,
-    alignSelf: "center",
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.6)",
-    marginHorizontal: 4,
-  },
-  paginationDotActive: {
-    backgroundColor: "#FFFFFF",
   },
   highlightContent: {
     padding: 16,

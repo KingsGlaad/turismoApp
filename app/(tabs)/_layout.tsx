@@ -57,6 +57,17 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="events/index"
+        options={{
+          title: "Eventos",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="event-busy" size={size} color={color} />
+          ),
+        }}
+      />
+    
     </Tabs>
+    
   );
 }

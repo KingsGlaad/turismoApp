@@ -1,12 +1,13 @@
 import {
+  Event,
   Highlight,
   Municipality,
   MunicipalityListItem,
 } from "@/types/Cities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const API_URL = "http://192.168.0.5:3000/api";
-// const API_URL = process.env.EXPO_PUBLIC_API_URL;
+ //const API_URL = "http://192.168.0.4:3000/api";
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export function useMunicipalities(searchQuery: string = "") {
   // Estado para armazenar a lista completa de municípios, sem filtro.
@@ -74,7 +75,21 @@ export function useMunicipality(slug: string) {
           throw new Error(`Falha na resposta da rede: ${response.statusText}`);
         }
         const data = await response.json();
-        setMunicipality(data);
+        // Formata os dados para garantir consistência, especialmente para os destaques
+        const formattedData = {
+          ...data,
+          highlights: data.highlights?.map((highlight: any) => ({
+            ...highlight,
+            // Renomeia 'galleryImages' para 'images' para corresponder ao tipo 'Highlight'
+            images: highlight.galleryImages?.map((img: any, index: number) => ({
+              id: img.id || `${highlight.id}-img-${index}`,
+              url: img.url,
+            })),
+            galleryImages: undefined, // Remove o campo antigo para evitar confusão
+          })),
+        };
+
+        setMunicipality(formattedData);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Erro ao carregar município"
@@ -225,4 +240,100 @@ export function useHighlight(id: string) {
   }, [id]);
 
   return { highlight, loading, error, refetch: loadHighlight };
+}
+
+/**
+ * Hook para buscar a lista de eventos.
+ */
+export function useEvents() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Assumindo que sua API tem um endpoint para eventos
+      const response = await fetch(`${API_URL}/events`);
+      if (!response.ok) {
+        throw new Error(`Falha na resposta da rede: ${response.statusText}`);
+      }
+      const data = await response.json();
+      // Mapeia a resposta da API para a estrutura da interface 'Event'
+      const formattedData = data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        // A API envia um campo 'date'
+        date: event.date,
+        image: event.image || event.galleryImages?.[0]?.url || "",
+        municipality: event.municipality,
+        galleryImages: event.galleryImages?.map((img: any, index: number) => ({
+          id: `${event.id}-img-${index}`,
+          url: img.url,
+        })),
+      }));
+      setEvents(formattedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar eventos");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
+
+  return { events, loading, error, refetch: loadEvents };
+}
+
+/**
+ * Hook para buscar os dados de um evento específico.
+ * @param id O ID do evento.
+ */
+export function useEvent(id: string) {
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadEvent = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/events/${id}`);
+      if (!response.ok) {
+        throw new Error(`Falha na resposta da rede: ${response.statusText}`);
+      }
+      const data = await response.json();
+      // A API pode retornar um array com um único item, então pegamos o primeiro.
+      const eventData = Array.isArray(data) ? data[0] : data;
+
+      // Formata os dados para garantir consistência
+      const formattedData = {
+        ...eventData, // Inclui todos os campos da resposta da API
+        image: eventData.image || eventData.galleryImages?.[0]?.url || "",
+        galleryImages: eventData.galleryImages?.map((img: any, index: number) => ({
+          id: `${eventData.id}-img-${index}`,
+          url: img.url,
+        })),
+      };
+      setEvent(formattedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar evento");
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadEvent();
+  }, [id]);
+
+  return { event, loading, error, refetch: loadEvent };
 }

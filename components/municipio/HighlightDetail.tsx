@@ -16,8 +16,11 @@ import MapView, { Marker } from "react-native-maps";
 
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
+import { CarouselPagination } from "@/components/ui/CarouselPagination";
+import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { RenderHtml } from "@/components/utils/RenderHtml";
-import { Highlight, Image as HighlightImage } from "@/types/Cities";
+import { fakeReviews } from "@/constants/data";
+import { Highlight } from "@/types/Cities";
 
 interface HighlightDetailProps {
   highlight: Highlight;
@@ -26,8 +29,18 @@ interface HighlightDetailProps {
 const { width: screenWidth } = Dimensions.get("window");
 
 export function HighlightDetail({ highlight }: HighlightDetailProps) {
-  const flatListRef = useRef<FlatList<HighlightImage>>(null);
+  const flatListRef = useRef<FlatList<(typeof highlight.images)[0]>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isViewerVisible, setViewerVisible] = useState(false);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
+
+  // --- Dados Fictícios para Avaliações ---
+  // Gera uma nota e número de avaliações "únicos" para cada destaque
+  const ratingValue =
+    Math.round(((highlight.id.charCodeAt(0) % 11) / 10 + 4.0) * 10) / 10; // Nota entre 4.0 e 5.0
+  const reviewCount = (highlight.id.charCodeAt(1) % 50) + 15; // Entre 15 e 64 avaliações
+
+ 
 
   // Efeito para auto-rolagem do carrossel
   useEffect(() => {
@@ -67,14 +80,78 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
     Linking.openURL(url!);
   };
 
-  const renderCarouselItem = ({ item }: { item: HighlightImage }) => (
-    <View style={styles.carouselItemContainer}>
-      <Image source={{ uri: item.url }} style={styles.headerImage} />
+  const renderCarouselItem = ({
+    item,
+  }: { item: (typeof highlight.images)[0] }) => (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => {
+        setViewerInitialIndex(activeIndex);
+        setViewerVisible(true);
+      }}
+    >
+      <View style={styles.carouselItemContainer}>
+        <Image source={{ uri: item.url }} style={styles.headerImage} />
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Função para renderizar as estrelas de avaliação
+  const renderStars = (rating: number) => (
+    <View style={styles.starContainer}>
+      {Array.from({ length: 5 }).map((_, index) => {
+        if (rating >= index + 1) {
+          return (
+            <MaterialIcons key={index} name="star" size={16} color="#FFC107" />
+          );
+        }
+        if (rating >= index + 0.5) {
+          return (
+            <MaterialIcons
+              key={index}
+              name="star-half"
+              size={16}
+              color="#FFC107"
+            />
+          );
+        }
+        return (
+          <MaterialIcons
+            key={index}
+            name="star-border"
+            size={16}
+            color="#FFC107"
+          />
+        );
+      })}
+    </View>
+  );
+
+  // Função para renderizar o card de avaliação na FlatList
+  const renderReviewItem = ({ item }: { item: (typeof fakeReviews)[0] }) => (
+    <View style={styles.reviewCard}>
+      <View style={styles.reviewUserInfo}>
+        <Image source={{ uri: item.avatarUrl }} style={styles.reviewAvatar} />
+        <View>
+          <ThemedText style={styles.reviewAuthor}>{item.author}</ThemedText>
+        </View>
+        {renderStars(item.rating)}
+      </View>
+      <ThemedText style={styles.reviewComment} numberOfLines={4}>
+        {item.comment}
+      </ThemedText>
     </View>
   );
 
   return (
-    <ScrollView>
+    <>
+      <ImageViewerModal
+        images={highlight.images}
+        visible={isViewerVisible}
+        initialIndex={viewerInitialIndex}
+        onClose={() => setViewerVisible(false)}
+      />
+      <ScrollView>
       {/* Carrossel de Imagens */}
       {highlight.images && highlight.images.length > 0 && (
         <View style={styles.carouselWrapper}>
@@ -89,19 +166,7 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           />
-          {highlight.images.length > 1 && (
-            <View style={styles.paginationContainer}>
-              {highlight.images.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.paginationDot,
-                    activeIndex === index && styles.paginationDotActive,
-                  ]}
-                />
-              ))}
-            </View>
-          )}
+          <CarouselPagination data={highlight.images} activeIndex={activeIndex} />
         </View>
       )}
 
@@ -122,8 +187,21 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
           </TouchableOpacity>
         </View>
 
+        {/* Resumo da Avaliação */}
+        <View style={styles.ratingSummaryContainer}>
+          {renderStars(ratingValue)}
+          <ThemedText style={styles.ratingText}>
+            {ratingValue.toFixed(1)}
+          </ThemedText>
+          <ThemedText style={styles.reviewCountText}>
+            ({reviewCount} avaliações)
+          </ThemedText>
+        </View>
+
         {/* Descrição */}
-        <ThemedText style={styles.description}>{highlight.description}</ThemedText>
+        <ThemedText style={styles.description}>
+          {highlight.description}
+        </ThemedText>
 
         {/* Mapa */}
         <MapView
@@ -148,31 +226,118 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
         </MapView>
 
         {/* Conteúdo "Sobre" (se houver) */}
-        {highlight.description && (
+        {highlight.description && highlight.description.trim().length > 0 && (
           <ThemedView style={[styles.section, styles.aboutSection]}>
             <ThemedText type="subtitle">Sobre o local</ThemedText>
             <RenderHtml source={highlight.description} />
           </ThemedView>
         )}
+
+        {/* Seção de Avaliações */}
+        <ThemedView style={styles.section}>
+          <ThemedText type="subtitle">O que as pessoas dizem</ThemedText>
+          <FlatList
+            data={fakeReviews}
+            renderItem={renderReviewItem}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 10 }}
+          />
+        </ThemedView>
       </ThemedView>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  carouselWrapper: { height: 250, backgroundColor: "#eee" }, 
+  carouselWrapper: { height: 250, backgroundColor: "#eee" },
   carouselItemContainer: { width: screenWidth, height: 250 },
   headerImage: { width: "100%", height: "100%" },
-  paginationContainer: { flexDirection: "row", position: "absolute", bottom: 15, alignSelf: "center" },
-  paginationDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255, 255, 255, 0.6)", marginHorizontal: 4 },
-  paginationDotActive: { backgroundColor: "#FFFFFF" },
   contentContainer: { padding: 16 },
-  titleContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  titleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   title: { flex: 1 },
-  directionsButton: { backgroundColor: "#2f6fb3ff", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginLeft: 12, flexDirection: "row", alignItems: "center", gap: 4 },
+  directionsButton: {
+    backgroundColor: "#2f6fb3ff",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginLeft: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   directionsButtonText: { color: "#FFFFFF", fontWeight: "bold" },
   description: { fontSize: 16, marginVertical: 16, lineHeight: 24 },
   map: { height: 250, borderRadius: 12, marginVertical: 16 },
   section: { marginBottom: 16 },
-  aboutSection: { backgroundColor: "rgba(128, 128, 128, 0.1)", padding: 16, borderRadius: 12, marginTop: 16 },
+  aboutSection: {
+    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  // --- Estilos para Avaliação e Comentários ---
+  ratingSummaryContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  starContainer: {
+    flexDirection: "row",
+  },
+  ratingText: {
+    fontWeight: "bold",
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  reviewCountText: {
+    marginLeft: 8,
+    color: "#6b7280",
+    fontSize: 14,
+  },
+  reviewContainer: {
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.1)",
+  },
+  reviewCard: {
+    width: screenWidth * 0.7,
+    backgroundColor: "rgba(128, 128, 128, 0.1)",
+    borderRadius: 12,
+    padding: 16,
+    marginRight: 12,
+    height: 150,
+    justifyContent: "space-between",
+  },
+  reviewUserInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ccc",
+  },
+  reviewAuthor: {
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  reviewComment: {
+    color: "#374151",
+    lineHeight: 20,
+  },
 });
