@@ -13,14 +13,15 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 
+import { ThemedCard } from "@/components/theme/ThemedCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
-import { ThemedCard } from "@/components/theme/ThemedCard";
 import { CarouselPagination } from "@/components/ui/CarouselPagination";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { RenderHtml } from "@/components/utils/RenderHtml";
 import { fakeReviews } from "@/constants/data";
 import { Highlight } from "@/types/Municipios";
+import { ReviewItem } from "../ui/ReviewItem";
 
 interface HighlightDetailProps {
   highlight: Highlight;
@@ -96,51 +97,10 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
     </TouchableOpacity>
   );
 
-  // Função para renderizar as estrelas de avaliação
-  const renderStars = (rating: number) => (
-    <View style={styles.starContainer}>
-      {Array.from({ length: 5 }).map((_, index) => {
-        if (rating >= index + 1) {
-          return (
-            <MaterialIcons key={index} name="star" size={16} color="#FFC107" />
-          );
-        }
-        if (rating >= index + 0.5) {
-          return (
-            <MaterialIcons
-              key={index}
-              name="star-half"
-              size={16}
-              color="#FFC107"
-            />
-          );
-        }
-        return (
-          <MaterialIcons
-            key={index}
-            name="star-border"
-            size={16}
-            color="#FFC107"
-          />
-        );
-      })}
-    </View>
-  );
 
   // Função para renderizar o card de avaliação na FlatList
   const renderReviewItem = ({ item }: { item: (typeof fakeReviews)[0] }) => (
-    <ThemedCard style={styles.reviewCard}>
-      <View style={styles.reviewUserInfo}>
-        <Image source={{ uri: item.avatarUrl }} style={styles.reviewAvatar} />
-        <View>
-          <ThemedText style={styles.reviewAuthor}>{item.author}</ThemedText>
-        </View>
-        {renderStars(item.rating)}
-      </View>
-      <ThemedText style={styles.reviewComment} numberOfLines={4}>
-        {item.comment}
-      </ThemedText>
-    </ThemedCard>
+    <ReviewItem item={item} width={screenWidth * 0.7} />
   );
 
   return (
@@ -189,9 +149,34 @@ export function HighlightDetail({ highlight }: HighlightDetailProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Resumo da Avaliação */}
         <View style={styles.ratingSummaryContainer}>
-          {renderStars(ratingValue)}
+          <View style={styles.starContainer}>
+            {Array.from({ length: 5 }).map((_, index) => {
+              if (ratingValue >= index + 1) {
+                return (
+                  <MaterialIcons key={index} name="star" size={16} color="#FFC107" />
+                );
+              }
+              if (ratingValue >= index + 0.5) {
+                return (
+                  <MaterialIcons
+                    key={index}
+                    name="star-half"
+                    size={16}
+                    color="#FFC107"
+                  />
+                );
+              }
+              return (
+                <MaterialIcons
+                  key={index}
+                  name="star-border"
+                  size={16}
+                  color="#FFC107"
+                />
+              );
+            })}
+          </View>
           <ThemedText style={styles.ratingText}>
             {ratingValue.toFixed(1)}
           </ThemedText>
@@ -336,7 +321,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   reviewComment: {
-    color: "#374151",
+    color: "#FFF",
     lineHeight: 20,
+  },
+  reviewDate: {
+    color: "#6b7280",
+    fontSize: 12,
+  },
+  reviewUserInfoText: {
+    flexDirection: "column",
+    gap: 4,
+  },
+  reviewUserAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ccc",
   },
 });

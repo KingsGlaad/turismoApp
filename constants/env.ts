@@ -4,11 +4,11 @@
  */
 
 const getRequired = (key: string): string => {
-  const value = process.env[key];
+  const value = process.env[key] as string;
   if (!value) {
     throw new Error(
       `[ENV] Variável de ambiente obrigatória "${key}" não está definida.\n` +
-      `Verifique seu arquivo .env e reinicie o servidor de desenvolvimento.`
+        `Verifique seu arquivo .env e reinicie o servidor de desenvolvimento.`,
     );
   }
   return value;

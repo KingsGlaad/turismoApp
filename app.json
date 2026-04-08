@@ -15,7 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "jsEngine": "hermes"
+      "jsEngine": "hermes",
+      "bundleIdentifier": "com.kingsglaad.turismoAdetur",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

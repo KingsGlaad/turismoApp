@@ -1,6 +1,6 @@
+import { ThemedCard } from "@/components/theme/ThemedCard";
 import { ThemedText } from "@/components/theme/ThemedText";
 import { ThemedView } from "@/components/theme/ThemedView";
-import { ThemedCard } from "@/components/theme/ThemedCard";
 import { ImageCarousel } from "@/components/ui/ImageCarousel";
 import { ImageViewerModal } from "@/components/ui/ImageViewerModal";
 import { fakeReviews } from "@/constants/data";
@@ -8,9 +8,10 @@ import { Image as CityImage, Event } from "@/types/Municipios";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Dimensions, FlatList, Image, StyleSheet, View } from "react-native";
+import { Dimensions, FlatList, StyleSheet, View } from "react-native";
 import { formatDate } from "../utils/dateUtils";
 import { RenderHtml } from "../utils/RenderHtml";
+import { ReviewItem } from "../ui/ReviewItem";
 
 interface EventDetailProps {
   event: Event;
@@ -62,60 +63,14 @@ export function EventDetail({ event }: EventDetailProps) {
     setViewerVisible(true);
   };
 
-  // Função para renderizar as estrelas de avaliação
-  const renderStars = (rating: number) => (
-    <View style={styles.starContainer}>
-      {Array.from({ length: 5 }).map((_, index) => {
-        if (rating >= index + 1) {
-          return (
-            <MaterialIcons key={index} name="star" size={16} color="#FFC107" />
-          );
-        }
-        if (rating >= index + 0.5) {
-          return (
-            <MaterialIcons
-              key={index}
-              name="star-half"
-              size={16}
-              color="#FFC107"
-            />
-          );
-        }
-        return (
-          <MaterialIcons
-            key={index}
-            name="star-border"
-            size={16}
-            color="#FFC107"
-          />
-        );
-      })}
-    </View>
-  );
+
+  const { width: screenWidth } = Dimensions.get("window");
 
   // Função para renderizar o card de avaliação na FlatList
   const renderReviewItem = ({ item }: { item: (typeof fakeReviews)[0] }) => (
-    <ThemedCard style={reviewCardStyle}>
-      <View style={styles.reviewUserInfo}>
-        <Image source={{ uri: item.avatarUrl }} style={styles.reviewAvatar} />
-        <View>
-          <ThemedText style={styles.reviewAuthor} numberOfLines={1}>
-            {item.author}
-          </ThemedText>
-        </View>
-        {renderStars(item.rating)}
-      </View>
-      <ThemedText style={styles.reviewComment} numberOfLines={4}>
-        {item.comment}
-      </ThemedText>
-    </ThemedCard>
+    <ReviewItem item={item} width={screenWidth * 0.7} />
   );
 
-  const { width: screenWidth } = Dimensions.get("window");
-  const reviewCardStyle = {
-    ...styles.reviewCard,
-    width: screenWidth * 0.7,
-  };
 
   return (
     <>
@@ -156,7 +111,17 @@ export function EventDetail({ event }: EventDetailProps) {
           {/* Seção de Avaliações */}
           <ThemedView style={styles.section}>
             <View style={styles.ratingSummaryContainer}>
-              {renderStars(ratingValue)}
+              <View style={styles.starContainer}>
+                {Array.from({ length: 5 }).map((_, index) => {
+                  if (ratingValue >= index + 1) {
+                    return <MaterialIcons key={index} name="star" size={16} color="#FFC107" />;
+                  }
+                  if (ratingValue >= index + 0.5) {
+                    return <MaterialIcons key={index} name="star-half" size={16} color="#FFC107" />;
+                  }
+                  return <MaterialIcons key={index} name="star-border" size={16} color="#FFC107" />;
+                })}
+              </View>
               <ThemedText style={styles.ratingText}>
                 {ratingValue.toFixed(1)}
               </ThemedText>
@@ -284,7 +249,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   reviewComment: {
-    color: "#374151",
     lineHeight: 20,
   },
 });
